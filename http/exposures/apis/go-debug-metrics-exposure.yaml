@@ -1,0 +1,44 @@
+id: go-debug-metrics-exposure
+
+info:
+  name: Go Debug Endpoint Exposure (expvar / metrics / pprof)
+  author: Alvin Bijo (@OffgridOps)
+  severity: medium
+  description: |
+    Detects exposed debug endpoints such as /debug/vars, /metrics, or /debug/pprof 
+    which are commonly used in Go services and may leak sensitive internal data like 
+    environment variables, memory stats, or command-line args.
+
+  reference:
+    - https://pkg.go.dev/expvar
+    - https://prometheus.io/docs/instrumenting/exporters/
+    - https://github.com/OffgridOps
+  tags: exposure,debug,metrics,go,expvar,prometheus,devops
+
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}/debug/vars"
+      - "{{BaseURL}}/metrics"
+      - "{{BaseURL}}/debug/pprof/"
+
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "\"cmdline\""
+          - "\"memstats\""
+        condition: and
+
+      - type: regex
+        part: body
+        regex:
+          - "API_KEY=.*"
+          - "DB_PASS=.*"
+
+      - type: word
+        part: body
+        words:
+          - "# HELP"
+          - "# TYPE"
